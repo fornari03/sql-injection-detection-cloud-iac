@@ -44,6 +44,78 @@ resource "aws_subnet" "attacker_subnet" {
   }
 }
 
+# create the security group for the web environment system
+resource "aws_security_group" "web_env_sg" {
+  name        = "web_sg"
+  description = "Security group for web environment"
+  vpc_id      = aws_vpc.web_env_vpc.id
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "web-env-sg"
+  }
+}
+
+# create the Internet Gateway attached to the VPC
+resource "aws_internet_gateway" "web_env_igw" {
+  vpc_id = aws_vpc.web_env_vpc.id
+
+  tags = {
+    Name = "web-env-igw"
+  }
+}
+
+# create the Route Table for the public subnet
+resource "aws_route_table" "web_env_public_rt" {
+  vpc_id = aws_vpc.web_env_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.web_env_igw.id
+  }
+
+  tags = {
+    Name = "web-env-public-rt"
+  }
+}
+
+# associate the Route Table with the public subnet
+resource "aws_route_table_association" "web_env_public_assoc" {
+  subnet_id      = aws_subnet.web_env_subnet.id
+  route_table_id = aws_route_table.web_env_public_rt.id
+}
+
+resource "aws_instance" "vm_database" {
+  ami                         = var.ami_id
+  instance_type               = var.vm_type
+  subnet_id                   = aws_subnet.web_env_subnet.id
+  vpc_security_group_ids      = [aws_security_group.web_env_sg.id]
+  associate_public_ip_address = true
+  key_name                    = var.key_name
+
+  tags = {
+    Name = "vm-database"
+  }
+}
+
+
 
 
 
@@ -63,4 +135,15 @@ variable "az" {
 variable "vm_type" {
   type    = string
   default = "t2.micro"
+}
+
+variable "ami_id" {
+  description = "AMI ID for the EC2 instance"
+  type        = string
+  default     = "ami-020cba7c55df1f615" # Ubuntu Server 24.04 LTS (HVM),EBS General Purpose (SSD) AMI for us-east-1
+}
+
+variable "key_name" {
+  description = "Name of the SSH key pair you created in AWS to use for the EC2 instance"
+  type        = string
 }
