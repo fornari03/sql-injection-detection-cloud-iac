@@ -72,3 +72,31 @@
           - "id serial PRIMARY KEY"
           - "name varchar(50)"
           - "birthdate date"
+
+
+- name: Install Apache and PHP in Web server
+  hosts: webserver
+  become: true
+
+  tasks:
+    - name: Install Apache
+      ansible.builtin.apt:
+        name: apache2
+        state: present
+
+    - name: Install PHP and required extensions
+      ansible.builtin.apt:
+        name:
+          - php
+          - libapache2-mod-php
+          - php-pgsql
+        state: present
+
+    - name: Enable Apache rewrite module
+      ansible.builtin.command:
+        cmd: a2enmod rewrite
+
+    - name: Restart Apache service
+      ansible.builtin.service:
+        name: apache2
+        state: restarted

@@ -25,12 +25,15 @@ terraform apply -var-file=variables.tfvars -auto-approve
 
 # 2. Get the public IPs of the VMs
 VM_DATABASE_IP=$(terraform output -raw vm_db_ip)
+VM_WEB_SERVER_IP=$(terraform output -raw vm_web_server_ip)
 
 
 # 3. Create the Ansible inventory file
 cat > hosts <<EOF
 [database]
 ${VM_DATABASE_IP}
+[webserver]
+${VM_WEB_SERVER_IP}
 EOF
 
 echo "'hosts' file generated:"

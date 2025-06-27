@@ -115,7 +115,18 @@ resource "aws_instance" "vm_database" {
   }
 }
 
+resource "aws_instance" "vm_web_server" {
+  ami                         = var.ami_id
+  instance_type               = var.vm_type
+  subnet_id                   = aws_subnet.web_env_subnet.id
+  vpc_security_group_ids      = [aws_security_group.web_env_sg.id]
+  associate_public_ip_address = true
+  key_name                    = var.key_name
 
+  tags = {
+    Name = "vm-web-server"
+  }
+}
 
 
 
