@@ -26,6 +26,8 @@ terraform apply -var-file=variables.tfvars -auto-approve
 # 2. Get the public IPs of the VMs
 VM_DATABASE_IP=$(terraform output -raw vm_db_ip)
 VM_WEB_SERVER_IP=$(terraform output -raw vm_web_server_ip)
+VM_SEC_MONITOR_IP=$(terraform output -raw vm_sec_monitor_ip)
+VM_ATTACKER_IP=$(terraform output -raw vm_attacker_ip)
 
 
 # 3. Create the Ansible inventory file
@@ -34,6 +36,10 @@ cat > hosts <<EOF
 ${VM_DATABASE_IP}
 [webserver]
 ${VM_WEB_SERVER_IP}
+[security_monitor]
+${VM_SEC_MONITOR_IP}
+[attacker]
+${VM_ATTACKER_IP}
 EOF
 
 echo "'hosts' file generated:"

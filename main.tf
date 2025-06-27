@@ -128,6 +128,34 @@ resource "aws_instance" "vm_web_server" {
   }
 }
 
+resource "aws_instance" "vm_sec_monitor" {
+  ami                         = var.ami_id
+  instance_type               = var.vm_type
+  subnet_id                   = aws_subnet.web_env_subnet.id
+  vpc_security_group_ids      = [aws_security_group.web_env_sg.id]
+  associate_public_ip_address = true
+  key_name                    = var.key_name
+
+  tags = {
+    Name        = "vm-sec-monitor"
+    description = "This VM will have Suricata and Wazuh installed for security and monitoring"
+  }
+}
+
+resource "aws_instance" "vm_attacker" {
+  ami                         = var.ami_id
+  instance_type               = var.vm_type
+  subnet_id                   = aws_subnet.attacker_subnet.id
+  vpc_security_group_ids      = [aws_security_group.web_env_sg.id]
+  associate_public_ip_address = true
+  key_name                    = var.key_name
+
+  tags = {
+    Name = "vm-attacker"
+  }
+}
+
+
 
 
 
