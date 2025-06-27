@@ -1,0 +1,74 @@
+---
+- name: Install postgresql and create a database in DB server
+  hosts: database
+  become: true
+  vars:
+    postgres_password: "postgres"
+
+  tasks:
+    - name: Install postgresql
+      ansible.builtin.apt:
+        name: postgresql
+        state: present
+
+    - name: Install Python's psycopg2 package
+      ansible.builtin.apt:
+        name: python3-psycopg2
+        state: present
+
+    - name: Locate pg_hba.conf
+      shell: |
+        find /etc/postgresql /var/lib/pgsql -name pg_hba.conf 2>/dev/null | head -n1
+      register: pg_hba_path
+
+    - name: Substitute 'peer' with 'md5' for postgres user
+      ansible.builtin.replace:
+        path: "{{ pg_hba_path.stdout }}"
+        regexp: '^local\s+all\s+postgres\s+peer'
+        replace: 'local   all   postgres   md5'
+
+    - name: Allow TCP connections with md5 authentication
+      ansible.builtin.lineinfile:
+        path: "{{ pg_hba_path.stdout }}"
+        line: 'host    all    all    0.0.0.0/0    md5'
+        insertafter: EOF
+        state: present
+
+    - name: Set password for postgres user
+      community.postgresql.postgresql_user:
+        name: postgres
+        password: "{{ postgres_password }}"
+        login_user: postgres
+        login_password: postgres
+        login_host: localhost
+        login_port: 5432
+        role_attr_flags: "SUPERUSER"
+        state: present
+
+    - name: Restart PostgreSQL
+      ansible.builtin.service:
+        name: postgresql
+        state: restarted
+
+    - name: Create a database
+      community.postgresql.postgresql_db:
+        name: web_server_db
+        state: present
+        login_user: postgres
+        login_password: postgres
+        login_host: localhost
+        login_port: 5432
+
+    - name: Create a table in the database
+      community.postgresql.postgresql_table:
+        name: customers
+        state: present  
+        db: web_server_db
+        login_user: postgres
+        login_password: postgres
+        login_host: localhost
+        login_port: 5432
+        columns: 
+          - "id serial PRIMARY KEY"
+          - "name varchar(50)"
+          - "birthdate date"
