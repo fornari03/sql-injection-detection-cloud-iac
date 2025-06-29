@@ -112,3 +112,36 @@
       ansible.builtin.service:
         name: apache2
         state: restarted
+
+
+- name: Create PHP test connection with database
+  hosts: webserver
+  become: true
+  vars_files:
+    - ansible_vars.yaml
+
+  tasks:
+    - name: Create a PHP file to test database connection
+      ansible.builtin.copy:
+        dest: /var/www/html/test_db_connection.php
+        content: |
+          <?php
+          $host = '{{ db_host }}';
+          $port = '{{ postgres_port }}';
+          $dbname = '{{ db_name }}';
+          $user = '{{ postgres_user }}';
+          $password = '{{ postgres_password }}';
+
+          $conn = pg_connect("host=$host port=$port dbname=$dbname user=$user password=$password");
+
+          if (!$conn) {
+              echo "An error occurred while connecting to the database.";
+              exit;
+          }
+          echo "Connection to the database was successful!";
+
+          $res = pg_query($conn, "SELECT * FROM customers;");
+              while ($row = pg_fetch_assoc($res)) {
+                  echo $row['id'] . " - " . $row['name'] . " - " . $row['birthdate'] . "<br>";
+              }
+          pg_close($conn);
