@@ -13,3 +13,7 @@ output "vm_sec_monitor_ip" {
 output "vm_attacker_ip" {
   value = aws_instance.vm_attacker.public_ip
 }
+
+output "vm_db_private_ip" {
+  value = aws_instance.vm_database.private_ip
+}

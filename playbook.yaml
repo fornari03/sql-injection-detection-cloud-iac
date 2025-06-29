@@ -2,73 +2,85 @@
 - name: Install postgresql and create a database in DB server
   hosts: database
   become: true
-  vars:
-    postgres_password: "postgres"
+  vars_files:
+    - ansible_vars.yaml
 
   tasks:
-    - name: Install postgresql
-      ansible.builtin.apt:
-        name: postgresql
+    - name: Install PostgreSQL and dependencies
+      apt:
+        name:
+          - postgresql
+          - python3-psycopg2
         state: present
-
-    - name: Install Python's psycopg2 package
-      ansible.builtin.apt:
-        name: python3-psycopg2
-        state: present
+        update_cache: yes
 
     - name: Locate pg_hba.conf
       shell: |
         find /etc/postgresql /var/lib/pgsql -name pg_hba.conf 2>/dev/null | head -n1
       register: pg_hba_path
 
-    - name: Substitute 'peer' with 'md5' for postgres user
-      ansible.builtin.replace:
+    - name: Check if PostgreSQL is still using peer authentication
+      shell: |
+        grep -E '^local\s+all\s+postgres\s+peer' {{ pg_hba_path.stdout }}
+      register: is_peer_auth
+      failed_when: false
+      changed_when: false
+
+    - name: Set postgres password using peer (first run)
+      command: >
+        sudo -u postgres psql -c "ALTER USER {{ postgres_user }} WITH PASSWORD '{{ postgres_password }}';"
+      when: is_peer_auth.rc == 0
+
+    - name: Set postgres password using md5 (next runs)
+      command: >
+        psql -U {{ postgres_user }} -h localhost -p {{ postgres_port }} -c "ALTER USER {{ postgres_user }} WITH PASSWORD '{{ postgres_password }}';"
+      environment:
+        PGPASSWORD: "{{ postgres_password }}"
+      when: is_peer_auth.rc != 0
+
+    - name: Replace 'peer' with 'md5' for postgres local login
+      replace:
         path: "{{ pg_hba_path.stdout }}"
         regexp: '^local\s+all\s+postgres\s+peer'
         replace: 'local   all   postgres   md5'
 
     - name: Allow TCP connections with md5 authentication
-      ansible.builtin.lineinfile:
+      lineinfile:
         path: "{{ pg_hba_path.stdout }}"
         line: 'host    all    all    0.0.0.0/0    md5'
         insertafter: EOF
         state: present
+    
+    - name: Set listen_addresses to allow remote connections
+      lineinfile:
+        path: /etc/postgresql/16/main/postgresql.conf
+        regexp: '^#?listen_addresses\s*='
+        line: "listen_addresses = '*'"
 
-    - name: Set password for postgres user
-      community.postgresql.postgresql_user:
-        name: postgres
-        password: "{{ postgres_password }}"
-        login_user: postgres
-        login_password: postgres
-        login_host: localhost
-        login_port: 5432
-        role_attr_flags: "SUPERUSER"
-        state: present
-
-    - name: Restart PostgreSQL
-      ansible.builtin.service:
+    - name: Restart PostgreSQL service
+      service:
         name: postgresql
         state: restarted
 
-    - name: Create a database
+    - name: Create the database
       community.postgresql.postgresql_db:
-        name: web_server_db
+        name: "{{ db_name }}"
         state: present
-        login_user: postgres
-        login_password: postgres
+        login_user: "{{ postgres_user }}"
+        login_password: "{{ postgres_password }}"
         login_host: localhost
-        login_port: 5432
+        login_port: "{{ postgres_port }}"
 
-    - name: Create a table in the database
+    - name: Create 'customers' table in the database
       community.postgresql.postgresql_table:
         name: customers
-        state: present  
-        db: web_server_db
-        login_user: postgres
-        login_password: postgres
+        state: present
+        db: "{{ db_name }}"
+        login_user: "{{ postgres_user }}"
+        login_password: "{{ postgres_password }}"
         login_host: localhost
-        login_port: 5432
-        columns: 
+        login_port: "{{ postgres_port }}"
+        columns:
           - "id serial PRIMARY KEY"
           - "name varchar(50)"
           - "birthdate date"

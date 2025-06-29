@@ -61,6 +61,12 @@ resource "aws_security_group" "web_env_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  ingress {
+    from_port = 5432
+    to_port   = 5432
+    protocol  = "tcp"
+    cidr_blocks = [aws_vpc.web_env_vpc.cidr_block] # allow PostgreSQL access from within the VPC
+  }
   egress {
     from_port   = 0
     to_port     = 0

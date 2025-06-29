@@ -54,9 +54,18 @@ remote_user = ubuntu
 private_key_file = ${KEY_PATH}
 EOF
 
-echo "'ansible.cfg' file generated"
+echo "'ansible.cfg' file generated:"
 cat ansible.cfg
 
+# 5. Create the Ansible variables file
+cat > ansible_vars.yaml <<EOF
+---
+postgres_user: "postgres"
+postgres_password: "postgres"
+postgres_port: 5432
+db_name: "web_server_db"
+db_host: "${PRIVATE_IP_DATABASE}"
+EOF
 
 # 5. Runs Ansible playbook
 ansible-playbook -i hosts playbook.yaml
