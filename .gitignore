@@ -40,3 +40,4 @@ terraform.rc
 # Ansible
 ansible.cfg
 hosts
+ansible_vars.yaml
