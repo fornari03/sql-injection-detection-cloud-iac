@@ -62,9 +62,9 @@ resource "aws_security_group" "web_env_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
-    from_port = 5432
-    to_port   = 5432
-    protocol  = "tcp"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
     cidr_blocks = [aws_vpc.web_env_vpc.cidr_block] # allow PostgreSQL access from within the VPC
   }
   egress {
@@ -88,7 +88,7 @@ resource "aws_internet_gateway" "web_env_igw" {
   }
 }
 
-# create the Route Table for the public subnet
+# create the Route Table for the web env subnet
 resource "aws_route_table" "web_env_public_rt" {
   vpc_id = aws_vpc.web_env_vpc.id
 
@@ -107,6 +107,29 @@ resource "aws_route_table_association" "web_env_public_assoc" {
   subnet_id      = aws_subnet.web_env_subnet.id
   route_table_id = aws_route_table.web_env_public_rt.id
 }
+
+# create the Route Table for the attacker subnet
+resource "aws_route_table" "attacker_public_rt" {
+  vpc_id = aws_vpc.web_env_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.web_env_igw.id
+  }
+
+  tags = {
+    Name = "attacker-public-rt"
+  }
+}
+
+# associate the Route Table with the attacker subnet
+resource "aws_route_table_association" "attacker_public_assoc" {
+  subnet_id      = aws_subnet.attacker_subnet.id
+  route_table_id = aws_route_table.attacker_public_rt.id
+}
+
+
+# create the EC2 instances for the web environment system and attacker
 
 resource "aws_instance" "vm_database" {
   ami                         = var.ami_id
@@ -144,7 +167,7 @@ resource "aws_instance" "vm_sec_monitor" {
 
   tags = {
     Name        = "vm-sec-monitor"
-    description = "This VM will have Suricata and Wazuh installed for security and monitoring"
+    description = "This VM will have Snort, iptables and a SIEM-like tool installed for security and monitoring"
   }
 }
 
