@@ -66,6 +66,7 @@ postgres_password: "postgres"
 postgres_port: 5432
 db_name: "web_server_db"
 db_host: "${PRIVATE_IP_DATABASE}"
+snort_interface: "enX0"
 EOF
 
 # 5. Runs Ansible playbook
