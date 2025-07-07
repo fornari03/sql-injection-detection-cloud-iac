@@ -140,7 +140,8 @@ resource "aws_instance" "vm_database" {
   key_name                    = var.key_name
 
   tags = {
-    Name = "vm-database"
+    Name        = "vm-database"
+    description = "This VM will have a PostgreSQL database installed to store the web application data"
   }
 }
 
@@ -153,11 +154,12 @@ resource "aws_instance" "vm_web_server" {
   key_name                    = var.key_name
 
   tags = {
-    Name = "vm-web-server"
+    Name        = "vm-web-server"
+    description = "This VM hosts the web application vulnerable to SQL injection. Also runs Snort"
   }
 }
 
-resource "aws_instance" "vm_sec_monitor" {
+resource "aws_instance" "vm_siem" {
   ami                         = var.ami_id
   instance_type               = var.vm_type
   subnet_id                   = aws_subnet.web_env_subnet.id
@@ -166,8 +168,8 @@ resource "aws_instance" "vm_sec_monitor" {
   key_name                    = var.key_name
 
   tags = {
-    Name        = "vm-sec-monitor"
-    description = "This VM will have Snort, iptables and a SIEM-like tool installed for security and monitoring"
+    Name        = "vm-siem"
+    description = "This VM will have a SIEM-like tool installed to monitor the web environment"
   }
 }
 
@@ -180,7 +182,8 @@ resource "aws_instance" "vm_attacker" {
   key_name                    = var.key_name
 
   tags = {
-    Name = "vm-attacker"
+    Name        = "vm-attacker"
+    description = "This VM is used by the attacker to perform SQL injection attacks against the web application"
   }
 }
 

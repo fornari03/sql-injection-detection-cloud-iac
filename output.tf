@@ -6,8 +6,8 @@ output "vm_web_server_ip" {
   value = aws_instance.vm_web_server.public_ip
 }
 
-output "vm_sec_monitor_ip" {
-  value = aws_instance.vm_sec_monitor.public_ip
+output "vm_siem_ip" {
+  value = aws_instance.vm_siem.public_ip
 }
 
 output "vm_attacker_ip" {
