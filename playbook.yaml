@@ -147,8 +147,8 @@
           pg_close($conn);
           ?>
 
-- name: Install and configure Snort, iptables and SIEM-like tool in the security_monitor server
-  hosts: security_monitor
+- name: Install and configure Snort and iptables in the webserver VM
+  hosts: webserver
   become: true
   vars_files:
     - ansible_vars.yaml
@@ -166,12 +166,6 @@
         regexp: '^output unified2'
         line: 'output unified2: filename snort_alerts.log, limit 128'
 
-    - name: Set Snort to run in IDS mode
-      ansible.builtin.lineinfile:
-        path: /etc/snort/snort.conf
-        regexp: '^# config mode'
-        line: 'config mode: ids'
-
     - name: Set HOME_NET CIDR
       ansible.builtin.lineinfile:
         path: /etc/snort/snort.debian.conf
@@ -186,9 +180,7 @@
 
     - name: Run Snort in background (IDS mode)
       ansible.builtin.shell: |
-        nohup snort -A console -q -c /etc/snort/snort.conf -i {{ snort_interface }} > /var/log/snort_background.log 2>&1 &
-      args:
-        creates: /var/log/snort_background.log
+        nohup snort -A fast -q -c /etc/snort/snort.conf -i {{ snort_interface }} > /var/log/snort_background.log 2>&1 &
 
     - name: Install iptables-persistent
       ansible.builtin.apt:
@@ -218,6 +210,24 @@
         destination_port: 22
         jump: ACCEPT
 
+    - name: Add rule to detect SQL injection attempts
+      ansible.builtin.lineinfile:
+        path: /etc/snort/rules/local.rules
+        line: 'alert tcp any any -> any 80 (msg:"SQL Injection attempt detected"; content:"select"; nocase; sid:1000001; rev:1;)'
+
+    - name: Include local rules in Snort configuration
+      ansible.builtin.command:
+        cmd: echo "include \$RULE_PATH/local.rules" | sudo tee -a /etc/snort/snort.conf
+
+    - name: Restart Snort service
+      ansible.builtin.systemd:
+        name: snort
+        state: restarted
+
+    - name: Run Snort
+      ansible.builtin.shell: |
+        nohup snort -A fast -q -c /etc/snort/snort.conf -i enX0 &
+
 
 - name: Install sqlmap in the attacker server
   hosts: attacker
@@ -229,3 +239,8 @@
         name: sqlmap
         state: present
         update_cache: yes
+
+
+# - name: Install SIEM-like tool in the SIEM VM
+#   hosts: siem
+#     TODO: add tasks to install and configure a SIEM-like tool
