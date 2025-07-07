@@ -1,5 +1,5 @@
 # sql-injection-detection-aws-iac
-Repository for a set up of a vulnerable web environment to simulate SQL Injection attacks and detect them using IDS/IPS tools, scripts, and log analysis. Infrastructure is provisioned using Terraform and configured with Ansible on AWS Free Tier resources
+Repository for a set up of a vulnerable web environment to simulate SQL Injection attacks and detect them using IDS/IPS tools, scripts, and log analysis. Infrastructure is provisioned using Terraform and configured with Ansible on AWS Free Tier resources*
 
 
 ## Installation and Usage
@@ -32,8 +32,8 @@ Repository for a set up of a vulnerable web environment to simulate SQL Injectio
       ```bash
       ./deploy.sh path-to-private-key
       ```
-    - The script runs `terraform apply -var-file=variables.tfvars` and `ansible-playbook -i hosts playbook.yaml`.  
-      You can also run these commands manually if needed.
+    - The script runs `terraform apply -auto-approve` and `ansible-playbook -i hosts playbook.yaml`.  
+      You can also run these commands manually if needed and for terraform run `terraform apply` without `-auto-approve` to be asked to perform the actions.
 
 6. **Access the Virtual Machines**
     - SSH into the web server VM:  
@@ -65,6 +65,9 @@ Repository for a set up of a vulnerable web environment to simulate SQL Injectio
 9. **Destroy and Clean Up the Environment**
     - To remove all provisioned resources and avoid unnecessary charges, run:
         ```bash
-        terraform destroy -var-file=variables.tfvars
+        terraform destroy
         ```
 - **WARNING: If you do NOT destroy the infrastructure after use, AWS may CHARGE YOU for active resources if you exceed the AWS Free Tier limits!**
+
+
+> **NOTE:** While this setup is designed to stay within AWS Free Tier limits, you may incur small charges (a few cents) for data transfer.

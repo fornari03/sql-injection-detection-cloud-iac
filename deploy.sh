@@ -20,7 +20,7 @@ fi
 
 
 # 1. Apply Terraform configuration
-terraform apply -var-file=variables.tfvars -auto-approve
+terraform apply -auto-approve
 
 
 # 2. Get the public IPs of the VMs and the db private IP
