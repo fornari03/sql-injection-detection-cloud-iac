@@ -44,10 +44,10 @@ resource "aws_subnet" "attacker_subnet" {
   }
 }
 
-# create the security group for the web environment system
-resource "aws_security_group" "web_env_sg" {
+# create the security group for the web application VM
+resource "aws_security_group" "web_sg" {
   name        = "web_sg"
-  description = "Security group for web environment"
+  description = "Security group for the web application vm"
   vpc_id      = aws_vpc.web_env_vpc.id
   ingress {
     from_port   = 80
@@ -61,11 +61,34 @@ resource "aws_security_group" "web_env_sg" {
     protocol    = "tcp"
     cidr_blocks = [var.my_ip_cidr] # your IP CIDR block for SSH access
   }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "web-sg"
+  }
+}
+
+# create the security group for the database VM
+resource "aws_security_group" "db_sg" {
+  name        = "db_sg"
+  description = "Security group for the database vm"
+  vpc_id      = aws_vpc.web_env_vpc.id
   ingress {
-    from_port   = 5432
-    to_port     = 5432
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.web_sg.id] # allow access from web server
+  }
+  ingress {
+    from_port   = 22
+    to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [aws_vpc.web_env_vpc.cidr_block] # allow PostgreSQL access from within the VPC
+    cidr_blocks = [var.my_ip_cidr] # your IP CIDR block for SSH access
   }
   egress {
     from_port   = 0
@@ -75,7 +98,59 @@ resource "aws_security_group" "web_env_sg" {
   }
 
   tags = {
-    Name = "web-env-sg"
+    Name = "db-sg"
+  }
+}
+
+# create the security group for the siem VM
+resource "aws_security_group" "siem_sg" {
+  name        = "siem_sg"
+  description = "Security group for the SIEM vm"
+  vpc_id      = aws_vpc.web_env_vpc.id
+  ingress {
+    from_port   = 514 # syslog port
+    to_port     = 514
+    protocol    = "tcp"
+    cidr_blocks = [aws_vpc.web_env_vpc.cidr_block] # allow access from the VPC
+  }
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.my_ip_cidr] # your IP CIDR block for SSH access
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "siem-sg"
+  }
+}
+
+# create the security group for the attacker VM
+resource "aws_security_group" "attacker_sg" {
+  name        = "attacker_sg"
+  description = "Security group for the attacker vm"
+  vpc_id      = aws_vpc.web_env_vpc.id
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.my_ip_cidr] # your IP CIDR block for SSH access
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "attacker-sg"
   }
 }
 
@@ -135,7 +210,7 @@ resource "aws_instance" "vm_database" {
   ami                         = var.ami_id
   instance_type               = var.vm_type
   subnet_id                   = aws_subnet.web_env_subnet.id
-  vpc_security_group_ids      = [aws_security_group.web_env_sg.id]
+  vpc_security_group_ids      = [aws_security_group.db_sg.id]
   associate_public_ip_address = true
   key_name                    = var.key_name
 
@@ -149,7 +224,7 @@ resource "aws_instance" "vm_web_server" {
   ami                         = var.ami_id
   instance_type               = var.vm_type
   subnet_id                   = aws_subnet.web_env_subnet.id
-  vpc_security_group_ids      = [aws_security_group.web_env_sg.id]
+  vpc_security_group_ids      = [aws_security_group.web_sg.id]
   associate_public_ip_address = true
   key_name                    = var.key_name
 
@@ -163,7 +238,7 @@ resource "aws_instance" "vm_siem" {
   ami                         = var.ami_id
   instance_type               = var.vm_type
   subnet_id                   = aws_subnet.web_env_subnet.id
-  vpc_security_group_ids      = [aws_security_group.web_env_sg.id]
+  vpc_security_group_ids      = [aws_security_group.siem_sg.id]
   associate_public_ip_address = true
   key_name                    = var.key_name
 
@@ -177,7 +252,7 @@ resource "aws_instance" "vm_attacker" {
   ami                         = var.ami_id
   instance_type               = var.vm_type
   subnet_id                   = aws_subnet.attacker_subnet.id
-  vpc_security_group_ids      = [aws_security_group.web_env_sg.id]
+  vpc_security_group_ids      = [aws_security_group.attacker_sg.id]
   associate_public_ip_address = true
   key_name                    = var.key_name
 
