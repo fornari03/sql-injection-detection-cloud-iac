@@ -59,7 +59,7 @@ resource "aws_security_group" "web_env_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.my_ip_cidr] # your IP CIDR block for SSH access
   }
   ingress {
     from_port   = 5432
@@ -216,5 +216,10 @@ variable "ami_id" {
 
 variable "key_name" {
   description = "Name of the SSH key pair you created in AWS to use for the EC2 instance"
+  type        = string
+}
+
+variable "my_ip_cidr" {
+  description = "Your IP address in CIDR notation"
   type        = string
 }
