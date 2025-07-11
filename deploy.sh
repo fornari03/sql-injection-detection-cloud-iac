@@ -20,6 +20,7 @@ fi
 
 
 # 1. Apply Terraform configuration
+terraform init
 terraform apply -auto-approve
 
 

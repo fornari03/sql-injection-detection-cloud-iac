@@ -28,6 +28,10 @@ Repository for a set up of a vulnerable web environment to simulate SQL Injectio
       ```
 
 5. **Deploy Infrastructure**
+    - First initialize the Terraform project:
+      ```
+      terraform init
+      ```
     - Run the deployment script, passing the path to your private key:  
       ```bash
       ./deploy.sh path-to-private-key
