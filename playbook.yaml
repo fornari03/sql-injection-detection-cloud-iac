@@ -71,24 +71,42 @@
         login_host: localhost
         login_port: "{{ postgres_port }}"
 
-    - name: Create 'customers' table in the database
-      community.postgresql.postgresql_table:
-        name: customers
-        state: present
+    - name: Create 'users' table in the database
+      community.postgresql.postgresql_query:
         db: "{{ db_name }}"
         login_user: "{{ postgres_user }}"
         login_password: "{{ postgres_password }}"
         login_host: localhost
         login_port: "{{ postgres_port }}"
-        columns:
-          - "id serial PRIMARY KEY"
-          - "name varchar(50)"
-          - "birthdate date"
+        query: |
+          CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          username VARCHAR(50) UNIQUE NOT NULL,
+          password VARCHAR(255) NOT NULL,
+          role VARCHAR(50) NOT NULL
+          );
+
+    - name: Insert initial users
+      community.postgresql.postgresql_query:
+        db: "{{ db_name }}"
+        login_user: "{{ postgres_user }}"
+        login_password: "{{ postgres_password }}"
+        login_host: localhost
+        login_port: "{{ postgres_port }}"
+        query: |
+          INSERT INTO users (username, password, role) VALUES
+          ('admin', 'password123', 'admin'),
+          ('enzo.teles', 'az4eL?', 'user'),
+          ('lorena.borges', 'awes0me_t3ach3r', 'user'),
+          ('gui.fornari', 'kek123%', 'user')
+          ON CONFLICT (username) DO NOTHING;
 
 
 - name: Install Apache and PHP in Web server
   hosts: webserver
   become: true
+  vars_files:
+    - ansible_vars.yaml
 
   tasks:
     - name: Install Apache
@@ -113,39 +131,34 @@
         name: apache2
         state: restarted
 
-
-- name: Create PHP test connection with database
-  hosts: webserver
-  become: true
-  vars_files:
-    - ansible_vars.yaml
-
-  tasks:
-    - name: Create a PHP file to test database connection
+    - name: Copy the PHP files to the web server
       ansible.builtin.copy:
-        dest: /var/www/html/test_db_connection.php
-        content: |
-          <?php
-          $host = '{{ db_host }}';
-          $port = '{{ postgres_port }}';
-          $dbname = '{{ db_name }}';
-          $user = '{{ postgres_user }}';
-          $password = '{{ postgres_password }}';
+        src: ./src/
+        dest: /var/www/html/
+        owner: www-data
+        group: www-data
+        mode: '0644'
 
-          $conn = pg_connect("host=$host port=$port dbname=$dbname user=$user password=$password");
+    - name: Copy the PHP files to the web server
+      ansible.builtin.copy:
+        src: ./src/
+        dest: /var/www/html/
+        owner: www-data
+        group: www-data
+        mode: '0644'
+        
+    - name: Change host in get_login.php file
+      ansible.builtin.replace:
+        path: /var/www/html/get_login.php
+        regexp: 'localhost'
+        replace: '{{ db_host }}'
 
-          if (!$conn) {
-              echo "An error occurred while connecting to the database.";
-              exit;
-          }
-          echo "Connection to the database was successful!"; "<br>";
+    - name: Change host in post_login.php file
+      ansible.builtin.replace:
+        path: /var/www/html/post_login.php
+        regexp: 'localhost'
+        replace: '{{ db_host }}'
 
-          $res = pg_query($conn, "SELECT * FROM customers;");
-              while ($row = pg_fetch_assoc($res)) {
-                  echo $row['id'] . " - " . $row['name'] . " - " . $row['birthdate'] . "<br>";
-              }
-          pg_close($conn);
-          ?>
 
 - name: Install and configure Snort and iptables in the webserver VM
   hosts: webserver
@@ -240,7 +253,3 @@
         state: present
         update_cache: yes
 
-
-# - name: Install SIEM-like tool in the SIEM VM
-#   hosts: siem
-#     TODO: add tasks to install and configure a SIEM-like tool

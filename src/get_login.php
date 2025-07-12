@@ -1,5 +1,5 @@
 <?php
-$host = '172.16.10.34';
+$host = 'localhost';
 $dbname = 'web_server_db';
 $user = 'postgres';
 $password = 'postgres';
@@ -18,7 +18,7 @@ try {
         $username = $_GET['username'];
         $password = $_GET['password'];
 
-        $query = "SELECT * FROM usuarios WHERE username = '$username' AND password = '$password'";
+        $query = "SELECT * FROM users WHERE username = '$username' AND password = '$password'";
         
         $result = pg_query($conn, $query);
 
