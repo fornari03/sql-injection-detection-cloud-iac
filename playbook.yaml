@@ -1,4 +1,36 @@
 ---
+- name: Change hostname in webserver VM
+  hosts: webserver
+  become: true
+  tasks:
+    - name: Change hostname
+      ansible.builtin.command:
+        cmd: hostnamectl set-hostname webserver
+
+- name: Change hostname in database VM
+  hosts: database
+  become: true
+  tasks:
+    - name: Change hostname
+      ansible.builtin.command:
+        cmd: hostnamectl set-hostname database
+        
+- name: Change hostname in attacker VM
+  hosts: attacker
+  become: true
+  tasks:
+    - name: Change hostname
+      ansible.builtin.command:
+        cmd: hostnamectl set-hostname attacker
+
+- name: Change hostname in siem VM
+  hosts: siem
+  become: true
+  tasks:
+    - name: Change hostname
+      ansible.builtin.command:
+        cmd: hostnamectl set-hostname siem
+
 - name: Install postgresql and create a database in DB server
   hosts: database
   become: true
