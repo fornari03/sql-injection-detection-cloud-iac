@@ -34,8 +34,9 @@ ATENÇÃO
 - sudo systemctl start wazuh-agent``
 
 ### Ports in SIEM Security Groups
-1514 - tcp -> sg-webserver
-1515 - tcp -> sg-webserver
+
+- 1514 - tcp -> sg-webserver
+- 1515 - tcp -> sg-webserver
 
 ### Configuration File in SIEM
 sudo nano /var/ossec/etc/ossec.conf
