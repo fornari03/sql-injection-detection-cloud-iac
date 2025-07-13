@@ -117,7 +117,7 @@ resource "aws_security_group" "siem_sg" {
     from_port   = 514 # another common syslog port
     to_port     = 514
     protocol    = "tcp"
-    cidr_blocks = [aws_vpc.web_env_vpc.cidr_block] # allow access from the VPC
+    cidr_blocks = [aws_subnet.web_env_subnet.cidr_block] # allow access from the web environment subnet
   }
   ingress {
     from_port   = 22
