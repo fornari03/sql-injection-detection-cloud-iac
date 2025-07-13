@@ -24,12 +24,13 @@ terraform init
 terraform apply -auto-approve
 
 
-# 2. Get the public IPs of the VMs and the db private IP
+# 2. Get the public IPs of the VMs and the db and siem private IPs
 VM_DATABASE_IP=$(terraform output -raw vm_db_ip)
 VM_WEB_SERVER_IP=$(terraform output -raw vm_web_server_ip)
 VM_SIEM_IP=$(terraform output -raw vm_siem_ip)
 VM_ATTACKER_IP=$(terraform output -raw vm_attacker_ip)
 PRIVATE_IP_DATABASE=$(terraform output -raw vm_db_private_ip)
+PRIVATE_IP_SIEM=$(terraform output -raw vm_siem_private_ip)
 
 
 # 3. Create the Ansible inventory file
@@ -68,6 +69,7 @@ postgres_port: 5432
 db_name: "web_server_db"
 db_host: "${PRIVATE_IP_DATABASE}"
 snort_interface: "enX0"
+siem_ip: "${PRIVATE_IP_SIEM}"
 EOF
 
 # 5. Runs Ansible playbook

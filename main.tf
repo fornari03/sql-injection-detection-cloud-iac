@@ -108,7 +108,13 @@ resource "aws_security_group" "siem_sg" {
   description = "Security group for the SIEM vm"
   vpc_id      = aws_vpc.web_env_vpc.id
   ingress {
-    from_port   = 514 # syslog port
+    from_port   = 1514 # default port for syslog
+    to_port     = 1515
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.web_env_subnet.cidr_block] # allow access from the web environment subnet
+  }
+  ingress {
+    from_port   = 514 # another common syslog port
     to_port     = 514
     protocol    = "tcp"
     cidr_blocks = [aws_vpc.web_env_vpc.cidr_block] # allow access from the VPC
@@ -241,6 +247,11 @@ resource "aws_instance" "vm_siem" {
   vpc_security_group_ids      = [aws_security_group.siem_sg.id]
   associate_public_ip_address = true
   key_name                    = var.key_name
+
+  root_block_device {
+    volume_size = 12 # add 4 GB because of the wazuh
+    volume_type = "gp3"
+  }
 
   tags = {
     Name        = "vm-siem"

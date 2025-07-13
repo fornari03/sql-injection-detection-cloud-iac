@@ -31,6 +31,7 @@
       ansible.builtin.command:
         cmd: hostnamectl set-hostname siem
 
+
 - name: Install postgresql and create a database in DB server
   hosts: database
   become: true
@@ -285,3 +286,133 @@
         state: present
         update_cache: yes
 
+
+- name: Install and configure Wazuh Manager on SIEM
+  hosts: siem
+  become: true
+
+  tasks:
+    - name: Install prerequisites
+      ansible.builtin.apt:
+        name:
+          - gnupg
+          - apt-transport-https
+        state: present
+        update_cache: yes
+
+    - name: Add Wazuh GPG key
+      ansible.builtin.shell: |
+        curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | \
+        gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import
+      args:
+        creates: /usr/share/keyrings/wazuh.gpg
+
+    - name: Set permissions for Wazuh GPG key
+      ansible.builtin.file:
+        path: /usr/share/keyrings/wazuh.gpg
+        mode: '0644'
+
+    - name: Add Wazuh repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main"
+        filename: wazuh
+        state: present
+
+    - name: Install Wazuh Manager
+      ansible.builtin.apt:
+        name: wazuh-manager
+        state: present
+        update_cache: yes
+
+    - name: Configure Wazuh Manager (active response)
+      ansible.builtin.blockinfile:
+        path: /var/ossec/etc/ossec.conf
+        insertafter: '</client>'
+        marker: ""
+        block: |
+          <command>
+            <name>firewall-drop</name>
+            <executable>firewall-drop.sh</executable>
+            <expect>srcip</expect>
+            <timeout_allowed>yes</timeout_allowed>
+          </command>
+
+          <active-response>
+            <command>firewall-drop</command>
+            <location>local</location>
+            <rules_group>ids</rules_group>
+          </active-response>
+
+    - name: Restart and enable Wazuh Manager
+      ansible.builtin.service:
+        name: wazuh-manager
+        state: started
+        enabled: true
+
+
+- name: Install and configure Wazuh Agent on Webserver
+  hosts: webserver
+  become: true
+  vars_files:
+    - ansible_vars.yaml
+
+  tasks:
+    - name: Install prerequisites
+      ansible.builtin.apt:
+        name:
+          - gnupg
+          - apt-transport-https
+        state: present
+        update_cache: yes
+
+    - name: Add Wazuh GPG key
+      ansible.builtin.shell: |
+        curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | \
+        gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import
+      args:
+        creates: /usr/share/keyrings/wazuh.gpg
+
+    - name: Set permissions for Wazuh GPG key
+      ansible.builtin.file:
+        path: /usr/share/keyrings/wazuh.gpg
+        mode: '0644'
+
+    - name: Add Wazuh repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main"
+        filename: wazuh
+        state: present
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install Wazuh Agent
+      ansible.builtin.apt:
+        name: wazuh-agent
+        state: present
+
+    - name: Configure agent to point to manager
+      ansible.builtin.blockinfile:
+        path: /var/ossec/etc/ossec.conf
+        marker: "# {mark} ANSIBLE MANAGER CONFIG"
+        insertafter: '</syscheck>'
+        block: |
+          <client>
+            <server>
+              <address>{{ siem_ip }}</address>
+              <port>1514</port>
+              <protocol>tcp</protocol>
+            </server>
+          </client>
+
+    - name: Monitor Snort logs
+      ansible.builtin.blockinfile:
+        path: /var/ossec/etc/ossec.conf
+        insertafter: '</client>'
+        marker: "# {mark} WAZUH LOCAL FILE"
+        block: |
+          <localfile>
+            <log_format>snort-fast</log_format>
+            <location>/var/log/snort/snort.alert.fast</location>
+          </localfile>
