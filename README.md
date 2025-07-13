@@ -56,17 +56,45 @@ Repository for a set up of a vulnerable web environment to simulate SQL Injectio
       ```
       This can rarely happen when running `deploy.sh`. If it does, simply run the script again.
 
-8. **Simulate and Detect SQL Injection Attacks**
-    - On the attacker VM, run:
+8. **Manual Fix**
+    - On the web VM, you need to make a manual fix:
       ```bash
-      sqlmap -u "http://<PRIVATE_IP_WEB>/test_db_connection.php?id=1" --batch --level=2 --risk=2
+      sudo nano /var/ossec/etc/ossec.conf
       ```
-    - On the web VM, monitor Snort alerts:
+    - Delete the block in the file:
+      ```xml
+      <localfile>
+        <log_format>snort</log_format>
+        <location>/var/log/snort/alert</location>
+      </localfile>
+      ```
+    - Save the changes, leave the editor and then run:
       ```bash
-      sudo tail -f /var/log/snort/alert
+      sudo systemctl restart wazuh-agent
+      sudo systemctl enable wazuh-agent
       ```
 
-9. **Destroy and Clean Up the Environment**
+9. **Simulate and Detect SQL Injection Attacks**
+    - On the siem VM, run:
+      ```bash
+      sudo tail -f /var/ossec/logs/alerts/alerts.log
+      ```
+    - On the webserver VM, run:
+      ```bash
+      sudo tail -f /var/ossec/logs/active-responses.log
+      ```
+    - On the attacker VM, run (substituting the `<PRIVATE_IP_WEB>` with the actual private IP address of the vm_web_server):
+      ```bash
+      sqlmap -u "http://<PRIVATE_IP_WEB>/get_login.php?id=1" --batch --level=2 --risk=2
+      ```
+
+
+    - The attack will be mitigated by blocking the source IP after a while, adding it to the `iptables` blocked IPs. You can see this by running on the webserver VM:
+      ```bash
+      sudo iptables -L INPUT -n --line-numbers
+      ```
+
+10. **Destroy and Clean Up the Environment**
     - To remove all provisioned resources and avoid unnecessary charges, run:
         ```bash
         terraform destroy
