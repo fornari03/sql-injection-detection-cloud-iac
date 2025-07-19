@@ -56,25 +56,7 @@ Repository for a set up of a vulnerable web environment to simulate SQL Injectio
       ```
       This can rarely happen when running `deploy.sh`. If it does, simply run the script again.
 
-8. **Manual Fix**
-    - On the web VM, you need to make a manual fix:
-      ```bash
-      sudo nano /var/ossec/etc/ossec.conf
-      ```
-    - Delete the block in the file:
-      ```xml
-      <localfile>
-        <log_format>snort</log_format>
-        <location>/var/log/snort/alert</location>
-      </localfile>
-      ```
-    - Save the changes, leave the editor and then run:
-      ```bash
-      sudo systemctl restart wazuh-agent
-      sudo systemctl enable wazuh-agent
-      ```
-
-9. **Simulate and Detect SQL Injection Attacks**
+8. **Simulate and Detect SQL Injection Attacks**
     - On the siem VM, run:
       ```bash
       sudo tail -f /var/ossec/logs/alerts/alerts.log
@@ -94,7 +76,7 @@ Repository for a set up of a vulnerable web environment to simulate SQL Injectio
       sudo iptables -L INPUT -n --line-numbers
       ```
 
-10. **Destroy and Clean Up the Environment**
+9. **Destroy and Clean Up the Environment**
     - To remove all provisioned resources and avoid unnecessary charges, run:
         ```bash
         terraform destroy

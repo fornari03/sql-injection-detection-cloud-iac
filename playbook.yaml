@@ -146,6 +146,7 @@
       ansible.builtin.apt:
         name: apache2
         state: present
+        update_cache: yes
 
     - name: Install PHP and required extensions
       ansible.builtin.apt:
@@ -416,3 +417,15 @@
             <log_format>snort-fast</log_format>
             <location>/var/log/snort/snort.alert.fast</location>
           </localfile>
+
+    - name: Remove 'snort' localfile block from Wazuh config
+      ansible.builtin.replace:
+        path: /var/ossec/etc/ossec.conf
+        regexp: '<localfile>\s*<log_format>snort</log_format>\s*<location>/var/log/snort/alert</location>\s*</localfile>\s*'
+        replace: ''
+    
+    - name: Enable and start wazuh-agent service
+      ansible.builtin.service:
+        name: wazuh-agent
+        enabled: true
+        state: restarted
