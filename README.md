@@ -48,6 +48,10 @@ Repository for a set up of a vulnerable web environment to simulate SQL Injectio
       ```bash
       psql -U postgres -d web_server_db
       ```
+> **NOTE:** Whenever you need a public or private IP, you can simply run the next command in your terminal:
+      ```
+      terraform output
+      ```
 
 7. **Troubleshooting**
     - If you see an error like:
@@ -74,6 +78,11 @@ Repository for a set up of a vulnerable web environment to simulate SQL Injectio
     - The attack will be mitigated by blocking the source IP after a while, adding it to the `iptables` blocked IPs. You can see this by running on the webserver VM:
       ```bash
       sudo iptables -L INPUT -n --line-numbers
+      ```
+
+    - You can also test attacks with logins using the webpage of the Apache server. Put this URL in your browser:
+      ```
+      http://<PUBLIC_IP_WEBSERVER_VM>/get_login.php
       ```
 
 9. **Destroy and Clean Up the Environment**
